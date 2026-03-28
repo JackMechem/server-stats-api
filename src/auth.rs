@@ -1,4 +1,8 @@
-use axum::{http::HeaderMap, http::StatusCode, response::IntoResponse, response::Json};
+use axum::body::Body;
+use axum::{
+    http::HeaderMap, http::Request, http::StatusCode, middleware::Next, response::IntoResponse,
+    response::Json, response::Response,
+};
 use base64::{Engine, engine::general_purpose};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use pam::Client;
@@ -112,6 +116,14 @@ pub fn verify_system_credentials(username: &str, password: &str) -> bool {
         .conversation_mut()
         .set_credentials(username, password);
     client.authenticate().is_ok()
+}
+
+pub async fn require_auth(headers: HeaderMap, request: Request<Body>, next: Next) -> Response {
+    if verify_token(&headers) {
+        next.run(request).await
+    } else {
+        (StatusCode::UNAUTHORIZED, "Unauthorized").into_response()
+    }
 }
 
 // POST /auth/login

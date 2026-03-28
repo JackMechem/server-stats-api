@@ -1,6 +1,4 @@
-use axum::{
-    http::HeaderMap, http::StatusCode, response::IntoResponse,
-};
+use axum::{http::HeaderMap, http::StatusCode, response::IntoResponse};
 use zbus::Connection;
 
 use crate::auth;
@@ -8,11 +6,6 @@ use crate::models;
 
 // POST /system/reboot
 pub async fn system_reboot(headers: HeaderMap) -> impl IntoResponse {
-    if !auth::verify_token(&headers) {
-        return models::ActionResponse::err(StatusCode::UNAUTHORIZED, "Unauthorized")
-            .into_response();
-    }
-
     let conn = match Connection::system().await {
         Ok(c) => c,
         Err(e) => {

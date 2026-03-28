@@ -1,6 +1,5 @@
 use axum::{
-    extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse,
-    response::Json,
+    extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse, response::Json,
 };
 use tokio::process::Command;
 use zbus::Connection;
@@ -46,9 +45,6 @@ async fn systemd_action(action: &str, service: &str) -> (StatusCode, Json<Action
 
 // POST /services/:service/restart
 pub async fn restart_service(headers: HeaderMap, Path(service): Path<String>) -> impl IntoResponse {
-    if !auth::verify_token(&headers) {
-        return ActionResponse::err(StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
-    }
     if !config::ALLOWED_SERVICES.contains(&service.as_str()) {
         return ActionResponse::err(StatusCode::BAD_REQUEST, "Service not allowed").into_response();
     }
@@ -57,9 +53,6 @@ pub async fn restart_service(headers: HeaderMap, Path(service): Path<String>) ->
 
 // POST /services/:service/start
 pub async fn start_service(headers: HeaderMap, Path(service): Path<String>) -> impl IntoResponse {
-    if !auth::verify_token(&headers) {
-        return ActionResponse::err(StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
-    }
     if !config::ALLOWED_SERVICES.contains(&service.as_str()) {
         return ActionResponse::err(StatusCode::BAD_REQUEST, "Service not allowed").into_response();
     }
@@ -68,9 +61,6 @@ pub async fn start_service(headers: HeaderMap, Path(service): Path<String>) -> i
 
 // POST /services/:service/stop
 pub async fn stop_service(headers: HeaderMap, Path(service): Path<String>) -> impl IntoResponse {
-    if !auth::verify_token(&headers) {
-        return ActionResponse::err(StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
-    }
     if !config::ALLOWED_SERVICES.contains(&service.as_str()) {
         return ActionResponse::err(StatusCode::BAD_REQUEST, "Service not allowed").into_response();
     }
@@ -79,9 +69,6 @@ pub async fn stop_service(headers: HeaderMap, Path(service): Path<String>) -> im
 
 // GET /services/:service/logs
 pub async fn service_logs(headers: HeaderMap, Path(service): Path<String>) -> impl IntoResponse {
-    if !auth::verify_token(&headers) {
-        return ActionResponse::err(StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
-    }
     if !config::ALLOWED_SERVICES.contains(&service.as_str()) {
         return ActionResponse::err(StatusCode::BAD_REQUEST, "Service not allowed").into_response();
     }

@@ -1,3 +1,4 @@
+use axum::middleware;
 use axum::response::Redirect;
 use axum::{Router, routing::get, routing::post};
 
@@ -8,10 +9,8 @@ mod routes;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/stats") }))
+    let protected = Router::new()
         .route("/stats", get(routes::stats::get_stats))
-        .route("/auth/login", post(auth::post_login))
         .route(
             "/services/{service}/restart",
             post(routes::services::restart_service),
@@ -28,7 +27,13 @@ async fn main() {
             "/services/{service}/logs",
             get(routes::services::service_logs),
         )
-        .route("/system/reboot", post(routes::system::system_reboot));
+        .route("/system/reboot", post(routes::system::system_reboot))
+        .route_layer(middleware::from_fn(auth::require_auth));
+
+    let app = Router::new()
+        .route("/", get(|| async { Redirect::permanent("/stats") }))
+        .route("/auth/login", post(auth::post_login))
+        .merge(protected);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3001")
         .await
