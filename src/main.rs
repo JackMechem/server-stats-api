@@ -1,9 +1,5 @@
 use axum::response::Redirect;
-use axum::{
-    Router, extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse,
-    response::Json, routing::get, routing::post,
-};
-use tokio::process::Command;
+use axum::{Router, routing::get, routing::post};
 
 mod auth;
 mod config;

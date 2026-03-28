@@ -1,16 +1,7 @@
-use axum::response::Redirect;
-use axum::{
-    Router, extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse,
-    response::Json, routing::get, routing::post,
-};
-use base64::{Engine, engine::general_purpose};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use pam::Client;
-use serde::{Deserialize, Serialize};
+use axum::response::Json;
 use std::collections::HashMap;
 use sysinfo::{Components, Disks, Networks, System};
 use tokio::process::Command;
-use zbus::Connection;
 
 use crate::models;
 

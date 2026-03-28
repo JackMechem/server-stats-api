@@ -1,18 +1,66 @@
-use axum::response::Redirect;
-use axum::{
-    Router, extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse,
-    response::Json, routing::get, routing::post,
-};
+use axum::{http::HeaderMap, http::StatusCode, response::IntoResponse, response::Json};
 use base64::{Engine, engine::general_purpose};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use pam::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use sysinfo::{Components, Disks, Networks, System};
-use tokio::process::Command;
-use zbus::Connection;
+use std::path::PathBuf;
+use std::sync::OnceLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-const JWT_SECRET: &str = "change-me-to-a-long-random-string";
+static JWT_SECRET: OnceLock<String> = OnceLock::new();
+
+const ROTATION_DAYS: u64 = 7;
+
+fn secret_path() -> PathBuf {
+    PathBuf::from("/home/jack/.local/share/sysapi/jwt_secret")
+}
+
+fn generate_secret() -> String {
+    format!(
+        "{:016x}{:016x}",
+        rand::random::<u64>(),
+        rand::random::<u64>()
+    )
+}
+
+fn current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
+pub fn jwt_secret() -> &'static str {
+    JWT_SECRET.get_or_init(|| {
+        let path = secret_path();
+        std::fs::create_dir_all(path.parent().unwrap()).ok();
+
+        // file format: "timestamp:secret"
+        if let Ok(contents) = std::fs::read_to_string(&path) {
+            if let Some((ts_str, secret)) = contents.trim().split_once(':') {
+                if let Ok(ts) = ts_str.parse::<u64>() {
+                    if current_timestamp() - ts < ROTATION_DAYS * 86400 {
+                        return secret.to_string();
+                    }
+                    println!("JWT secret expired, rotating...");
+                }
+            }
+        }
+
+        let secret = generate_secret();
+        let contents = format!("{}:{}", current_timestamp(), secret);
+        std::fs::write(&path, &contents).ok();
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).ok();
+        }
+
+        println!("Generated new JWT secret");
+        secret
+    })
+}
 
 #[derive(Serialize, Deserialize)]
 struct Claims {
@@ -28,7 +76,7 @@ pub fn create_token(username: &str) -> String {
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET.as_bytes()),
+        &EncodingKey::from_secret(jwt_secret().as_bytes()),
     )
     .unwrap()
 }
@@ -40,7 +88,7 @@ pub fn verify_token(headers: &HeaderMap) -> bool {
     let token = val.to_str().unwrap_or("").replace("Bearer ", "");
     decode::<Claims>(
         &token,
-        &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+        &DecodingKey::from_secret(jwt_secret().as_bytes()),
         &Validation::default(),
     )
     .is_ok()

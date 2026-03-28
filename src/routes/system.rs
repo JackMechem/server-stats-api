@@ -1,6 +1,5 @@
 use axum::{
-    Router, extract::Path, http::HeaderMap, http::StatusCode, response::IntoResponse,
-    response::Json, routing::get, routing::post,
+    http::HeaderMap, http::StatusCode, response::IntoResponse,
 };
 use zbus::Connection;
 

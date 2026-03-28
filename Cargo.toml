@@ -10,6 +10,7 @@ bcrypt = "0.19.0"
 chrono = "0.4.44"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 pam = { version = "0.8.0", features = ["client"] }
+rand = "0.10.0"
 rustls = { version = "0.23.37", features = ["ring"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.149"
