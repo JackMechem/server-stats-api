@@ -1,5 +1,5 @@
 {
-    description = "sysapi - system stats & command execution REST API in Rust";
+    description = "server-dash-api - system stats & command execution REST API in Rust";
     inputs = {
         nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
         rust-overlay = {
@@ -42,7 +42,7 @@
             in
             {
                 packages.default = pkgs.rustPlatform.buildRustPackage {
-                    pname = "sysapi";
+                    pname = "server-dash-api";
                     version = "0.1.0";
                     src = ./.;
                     cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
@@ -62,11 +62,65 @@
                     BINDGEN_EXTRA_CLANG_ARGS = "-I${pkgs.linux-pam}/include -I${pkgs.glibc.dev}/include";
                     RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
                     shellHook = ''
-                        echo "🦀 sysapi dev shell ready"
+                        echo "🦀 server-dash-api dev shell ready"
                         echo "   rustc  $(rustc --version)"
                         echo "   cargo  $(cargo --version)"
                     '';
                 };
             }
-        );
+        )
+        // {
+            nixosModules.default =
+                {
+                    config,
+                    pkgs,
+                    lib,
+                    ...
+                }:
+                {
+                    options.services.server-dash-api = {
+                        enable = lib.mkEnableOption "server-dash-api system stats API";
+                    };
+
+                    config = lib.mkIf config.services.server-dash-api.enable {
+                        users.users.server-dash-api = {
+                            isSystemUser = true;
+                            group = "server-dash-api";
+                            extraGroups = [ "shadow" ];
+                            home = "/var/lib/server-dash-api";
+                            createHome = true;
+                        };
+                        users.groups.server-dash-api = { };
+
+                        security.polkit.extraConfig = ''
+                            polkit.addRule(function(action, subject) {
+                                if ((action.id == "org.freedesktop.systemd1.manage-units" ||
+                                     action.id == "org.freedesktop.login1.reboot") &&
+                                    subject.user == "server-dash-api") {
+                                    return polkit.Result.YES;
+                                }
+                            });
+                        '';
+
+                        systemd.services.server-dash-api = {
+                            description = "server-dash-api - Rust System Stats API";
+                            after = [ "network.target" ];
+                            wantedBy = [ "multi-user.target" ];
+                            serviceConfig = {
+                                Type = "simple";
+                                User = "server-dash-api";
+                                Group = "server-dash-api";
+                                SupplementaryGroups = [ "shadow" ];
+                                ExecStart = "${self.packages.${pkgs.system}.default}/bin/server-dash-api";
+                                Restart = "always";
+                                StateDirectory = "server-dash-api";
+                                Environment = [
+                                    "RUST_LOG=info"
+                                    "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                                ];
+                            };
+                        };
+                    };
+                };
+        };
 }
