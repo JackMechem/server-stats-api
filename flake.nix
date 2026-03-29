@@ -45,7 +45,7 @@
                     pname = "server-dash-api";
                     version = "0.1.0";
                     src = ./.;
-                    cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+                    cargoHash = "sha256-ApTfxhXYXoxF0ixwUQKAxiQOLLwi92buPDLcK+VAbp4=";
                     inherit nativeBuildInputs buildInputs;
                     OPENSSL_NO_VENDOR = 1;
                     PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
