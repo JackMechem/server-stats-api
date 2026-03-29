@@ -97,15 +97,6 @@
                             "d /var/lib/server-dash-api/google-auth 0750 server-dash-api server-dash-api -"
                         ];
 
-                        security.pam.services.server-dash-api = {
-                            text = ''
-                                auth required ${pkgs.google-authenticator}/lib/security/pam_google_authenticator.so secret=/var/lib/server-dash-api/google-auth/%u user=server-dash-api no_increment_hotp
-                                auth sufficient ${pkgs.linux-pam}/lib/security/pam_unix.so likeauth nullok
-                                auth required ${pkgs.linux-pam}/lib/security/pam_unix.so
-                                account required ${pkgs.linux-pam}/lib/security/pam_unix.so
-                            '';
-                        };
-
                         security.polkit.extraConfig = ''
                             polkit.addRule(function(action, subject) {
                                 if ((action.id == "org.freedesktop.systemd1.manage-units" ||
