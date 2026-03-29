@@ -45,7 +45,7 @@
                     pname = "server-dash-api";
                     version = "0.1.0";
                     src = ./.;
-                    cargoHash = "sha256-ApTfxhXYXoxF0ixwUQKAxiQOLLwi92buPDLcK+VAbp4=";
+                    cargoHash = "sha256-z2sdfkRN25CAiXepQRzftoWGwbl8lI4KGuezGg4rD/A=";
                     inherit nativeBuildInputs buildInputs;
                     OPENSSL_NO_VENDOR = 1;
                     PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
@@ -92,6 +92,20 @@
                         };
                         users.groups.server-dash-api = { };
 
+                        systemd.tmpfiles.rules = [
+                            "d /var/lib/server-dash-api 0750 server-dash-api server-dash-api -"
+                            "d /var/lib/server-dash-api/google-auth 0750 server-dash-api server-dash-api -"
+                        ];
+
+                        security.pam.services.server-dash-api = {
+                            text = ''
+                                auth required ${pkgs.google-authenticator}/lib/security/pam_google_authenticator.so secret=/var/lib/server-dash-api/google-auth/%u user=server-dash-api no_increment_hotp
+                                auth sufficient ${pkgs.linux-pam}/lib/security/pam_unix.so likeauth nullok
+                                auth required ${pkgs.linux-pam}/lib/security/pam_unix.so
+                                account required ${pkgs.linux-pam}/lib/security/pam_unix.so
+                            '';
+                        };
+
                         security.polkit.extraConfig = ''
                             polkit.addRule(function(action, subject) {
                                 if ((action.id == "org.freedesktop.systemd1.manage-units" ||
@@ -118,6 +132,8 @@
                                     "RUST_LOG=info"
                                     "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                                 ];
+                                AmbientCapabilities = [ "CAP_DAC_READ_SEARCH" ];
+                                CapabilityBoundingSet = [ "CAP_DAC_READ_SEARCH" ];
                             };
                         };
                     };

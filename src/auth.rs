@@ -108,7 +108,7 @@ pub fn decode_basic_auth(headers: &HeaderMap) -> Option<(String, String)> {
 }
 
 pub fn verify_system_credentials(username: &str, password: &str) -> bool {
-    let mut client = match Client::with_password("login") {
+    let mut client = match Client::with_password("server-dash-api") {
         Ok(c) => c,
         Err(_) => return false,
     };
@@ -128,7 +128,7 @@ pub async fn require_auth(headers: HeaderMap, request: Request<Body>, next: Next
 
 // POST /auth/login
 pub async fn post_login(headers: HeaderMap) -> impl IntoResponse {
-    let (username, password) = match decode_basic_auth(&headers) {
+    let (username, password_and_totp) = match decode_basic_auth(&headers) {
         Some(c) => c,
         None => {
             return (
@@ -138,9 +138,11 @@ pub async fn post_login(headers: HeaderMap) -> impl IntoResponse {
                 .into_response();
         }
     };
-    if !verify_system_credentials(&username, &password) {
+
+    if !verify_system_credentials(&username, &password_and_totp) {
         return (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response();
     }
+
     let token = create_token(&username);
     (StatusCode::OK, Json(serde_json::json!({ "token": token }))).into_response()
 }
