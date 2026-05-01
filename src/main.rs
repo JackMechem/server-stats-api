@@ -1,6 +1,7 @@
 use axum::middleware;
 use axum::response::Redirect;
 use axum::{Router, routing::get, routing::post};
+use std::sync::Arc;
 
 mod auth;
 mod config;
@@ -9,6 +10,8 @@ mod routes;
 
 #[tokio::main]
 async fn main() {
+    let state = Arc::new(auth::AppState::new());
+
     let protected = Router::new()
         .route("/stats", get(routes::stats::get_stats))
         .route(
@@ -34,7 +37,11 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/stats") }))
         .route("/auth/login", post(auth::post_login))
-        .merge(protected);
+        .route("/auth/verify", post(auth::post_verify))
+        .route("/auth/register/start", post(auth::post_register_start))
+        .route("/auth/register/finish", post(auth::post_register_finish))
+        .merge(protected)
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3001")
         .await

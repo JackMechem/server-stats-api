@@ -44,7 +44,7 @@
                     pname = "server-dash-api";
                     version = "0.1.0";
                     src = ./.;
-                    cargoHash = "sha256-bOxtdDv0qtB61x9K/ik14DXCV1QfOBJQu7yQBx3L0wc=";
+                    cargoLock.lockFile = ./Cargo.lock;
                     inherit nativeBuildInputs buildInputs;
                     OPENSSL_NO_VENDOR = 1;
                     PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
@@ -101,7 +101,7 @@
 
                         systemd.tmpfiles.rules = [
                             "d /var/lib/server-dash-api 0750 server-dash-api server-dash-api -"
-                            "d /var/lib/server-dash-api/google-auth 0755 server-dash-api server-dash-api -"
+                            "d /var/lib/server-dash-api/webauthn-credentials 0750 server-dash-api server-dash-api -"
                         ];
 
                         security.polkit.extraConfig = ''
